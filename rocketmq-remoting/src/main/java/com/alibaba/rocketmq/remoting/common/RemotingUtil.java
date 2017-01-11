@@ -23,13 +23,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 import java.net.*;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Enumeration;
+import java.util.List;
 
 
 /**
@@ -90,8 +93,9 @@ public class RemotingUtil {
     public static boolean isLinuxPlatform() {
         return isLinuxPlatform;
     }
-
-    public static String getLocalAddress() {
+    public static List<String> getLocalAddressArray()
+    {
+        ArrayList<String> rstIP = new ArrayList<String>();
         try {
             // Traversal Network interface to get the first non-loopback and non-private address
             Enumeration<NetworkInterface> enumeration = NetworkInterface.getNetworkInterfaces();
@@ -118,21 +122,36 @@ public class RemotingUtil {
                     if (ip.startsWith("127.0") || ip.startsWith("192.168")) {
                         continue;
                     }
+                    rstIP.add(ip);
 
-                    return ip;
                 }
-
-                return ipv4Result.get(ipv4Result.size() - 1);
+                //to adapt old rocketmq,make the last ent address be the first
+                Collections.reverse(rstIP);
             } else if (!ipv6Result.isEmpty()) {
-                return ipv6Result.get(0);
+                rstIP.addAll(ipv6Result);
             }
-            //If failed to find,fall back to localhost
-            final InetAddress localHost = InetAddress.getLocalHost();
-            return normalizeHostAddress(localHost);
+            else{
+                rstIP.add(normalizeHostAddress(InetAddress.getLocalHost()));
+            }
+            return rstIP;
         } catch (SocketException e) {
             e.printStackTrace();
         } catch (UnknownHostException e) {
             e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    /**
+     *
+     * @return the last ipv4 or the first ipv6 or localhost
+     */
+    public static String getLocalAddress() {
+        final List<String> address = getLocalAddressArray();
+        if(address!=null && !address.isEmpty())
+        {
+            return address.get(0);
         }
 
         return null;

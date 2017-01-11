@@ -29,6 +29,7 @@ import com.alibaba.rocketmq.common.message.Message;
 import com.alibaba.rocketmq.common.message.MessageExt;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -38,12 +39,12 @@ public class SimpleConsumerProducerTest {
     private static final String TOPIC_TEST = "TopicTest-fundmng";
 
     @Test
-    public void producerConsumerTest() throws MQClientException, InterruptedException {
+    public void producerConsumerTest() throws MQClientException, InterruptedException, IOException {
         System.setProperty("rocketmq.namesrv.domain", "jmenv.tbsite.alipay.net");
 
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("S_fundmng_demo_producer");
         DefaultMQProducer producer = new DefaultMQProducer("P_fundmng_demo_producer");
-
+        producer.computeClientIP("10.1.33");
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
         consumer.subscribe(TOPIC_TEST, null);
 
@@ -71,11 +72,12 @@ public class SimpleConsumerProducerTest {
                 SendResult sendResult = producer.send(msg);
                 System.out.println(sendResult);
             } catch (Exception e) {
+                System.err.println(e.toString());
                 TimeUnit.SECONDS.sleep(1);
             }
         }
 
-        // wait no messages
+//        // wait no messages
         while ((System.currentTimeMillis() - lastReceivedMills.get()) < 5000) {
             TimeUnit.MILLISECONDS.sleep(200);
         }
